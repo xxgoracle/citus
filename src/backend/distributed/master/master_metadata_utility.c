@@ -511,7 +511,7 @@ LoadShardIntervalList(Oid relationId)
 Oid
 GetOnlyShardOidOfReferenceTable(Oid referenceTableOid)
 {
-	DistTableCacheEntry *cacheEntry = DistributedTableCacheEntry(referenceTableOid);
+	const DistTableCacheEntry *cacheEntry = DistributedTableCacheEntry(referenceTableOid);
 
 	/* assert that it is a "valid" "reference table" */
 	Assert(cacheEntry != NULL && cacheEntry->shardIntervalArrayLength == 1);
