@@ -319,18 +319,20 @@ ExtractLocalAndRemoteTasks(bool readOnly, List *taskList, List **localTaskList,
 			 * nodes. We always prefer to use local placement, and require remote
 			 * placements only for modifications.
 			 */
-			task->partiallyLocalOrRemote = true;
 
-			Task *localTask = copyObject(task);
-
-			localTask->taskPlacementList = localTaskPlacementList;
-			*localTaskList = lappend(*localTaskList, localTask);
-
-			if (readOnly)
+			/* Don't push a task without any placements */
+			if (list_length(localTaskPlacementList) > 0)
 			{
-				/* read-only tasks should only be executed on the local machine */
+				task->partiallyLocalOrRemote = true;
+
+				Task *localTask = copyObject(task);
+
+				localTask->taskPlacementList = localTaskPlacementList;
+				*localTaskList = lappend(*localTaskList, localTask);
 			}
-			else
+
+			/* read-only tasks should only be executed on the local machine */
+			if (!readOnly && list_length(remoteTaskPlacementList) > 0)
 			{
 				Task *remoteTask = copyObject(task);
 				remoteTask->taskPlacementList = remoteTaskPlacementList;
