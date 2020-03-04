@@ -59,6 +59,7 @@
 #include "distributed/commands/multi_copy.h"
 #include "distributed/distributed_planner.h"
 #include "distributed/errormessage.h"
+#include "distributed/listutils.h"
 #include "distributed/log_utils.h"
 #include "distributed/metadata_cache.h"
 #include "distributed/multi_logical_planner.h"
@@ -147,7 +148,7 @@ static void RecursivelyPlanNonColocatedSubqueriesInWhere(Query *query,
 														 colocatedJoinChecker,
 														 RecursivePlanningContext *
 														 recursivePlanningContext);
-static List * SublinkList(Query *originalQuery);
+static List * SublinkListFromWhere(Query *originalQuery);
 static bool ExtractSublinkWalker(Node *node, List **sublinkList);
 static bool ShouldRecursivelyPlanAllSubqueriesInWhere(Query *query);
 static bool RecursivelyPlanAllSubqueries(Node *node,
@@ -312,6 +313,25 @@ RecursivelyPlanSubqueriesAndCTEs(Query *query, RecursivePlanningContext *context
 	{
 		/* replace all subqueries in the WHERE clause */
 		RecursivelyPlanAllSubqueries((Node *) query->jointree->quals, context);
+	}
+
+	if (query->havingQual != NULL)
+	{
+		List *havingSublinks = NIL;
+		ExtractSublinkWalker(query->havingQual, &havingSublinks);
+
+		SubLink *havingSublink;
+		foreach_ptr(havingSublink, havingSublinks)
+		{
+			if (ContainsReferencesToOuterQuery(castNode(Query, havingSublink->subselect)))
+			{
+				return DeferredError(ERRCODE_FEATURE_NOT_SUPPORTED,
+									 "Cannot recursively plan HAVING with references to outer query",
+									 NULL, NULL);
+			}
+		}
+
+		RecursivelyPlanAllSubqueries(query->havingQual, context);
 	}
 
 	/*
@@ -528,7 +548,7 @@ RecursivelyPlanNonColocatedSubqueriesInWhere(Query *query,
 											 RecursivePlanningContext *
 											 recursivePlanningContext)
 {
-	List *sublinkList = SublinkList(query);
+	List *sublinkList = SublinkListFromWhere(query);
 	ListCell *sublinkCell = NULL;
 
 	foreach(sublinkCell, sublinkList)
@@ -551,12 +571,12 @@ RecursivelyPlanNonColocatedSubqueriesInWhere(Query *query,
 
 
 /*
- * SublinkList finds the subquery nodes in the where clause of the given query. Note
+ * SublinkListFromWhere finds the subquery nodes in the where clause of the given query. Note
  * that the function should be called on the original query given that postgres
  * standard_planner() may convert the subqueries in WHERE clause to joins.
  */
 static List *
-SublinkList(Query *originalQuery)
+SublinkListFromWhere(Query *originalQuery)
 {
 	FromExpr *joinTree = originalQuery->jointree;
 	List *sublinkList = NIL;
@@ -622,7 +642,7 @@ ShouldRecursivelyPlanAllSubqueriesInWhere(Query *query)
 		return false;
 	}
 
-	if (FindNodeCheckInRangeTableList(query->rtable, IsDistributedTableRTE))
+	if (FindNodeCheckInRangeTableList(query->rtable, IsDistributedNonReferenceTableRTE))
 	{
 		/* there is a distributed table in the FROM clause */
 		return false;
@@ -648,7 +668,6 @@ RecursivelyPlanAllSubqueries(Node *node, RecursivePlanningContext *planningConte
 	if (IsA(node, Query))
 	{
 		Query *query = (Query *) node;
-
 		if (FindNodeCheckInRangeTableList(query->rtable, IsDistributedTableRTE))
 		{
 			RecursivelyPlanSubquery(query, planningContext);
@@ -1025,7 +1044,7 @@ RecursivelyPlanSetOperations(Query *query, Node *node,
 		Query *subquery = rangeTableEntry->subquery;
 
 		if (rangeTableEntry->rtekind == RTE_SUBQUERY &&
-			QueryContainsDistributedTableRTE(subquery))
+			QueryContainsDistributedNonReferenceTableRTE(subquery))
 		{
 			RecursivelyPlanSubquery(subquery, context);
 		}

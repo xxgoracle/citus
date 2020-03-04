@@ -730,7 +730,8 @@ FromClauseRecurringTupleType(Query *queryTree)
 		return RECURRING_TUPLES_EMPTY_JOIN_TREE;
 	}
 
-	if (FindNodeCheckInRangeTableList(queryTree->rtable, IsDistributedTableRTE))
+	if (FindNodeCheckInRangeTableList(queryTree->rtable,
+									  IsDistributedNonReferenceTableRTE))
 	{
 		/*
 		 * There is a distributed table somewhere in the FROM clause.

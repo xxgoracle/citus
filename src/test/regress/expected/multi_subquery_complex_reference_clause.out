@@ -382,12 +382,16 @@ SELECT * FROM
 	 SELECT user_id FROM user_buy_test_table) sub
 ORDER BY 1 DESC;
 DEBUG:  Router planner cannot handle multi-shard select queries
-DEBUG:  Router planner cannot handle multi-shard select queries
-DEBUG:  generating subplan XXX_1 for subquery SELECT user_id FROM public.user_buy_test_table
+DEBUG:  Distributed planning for a fast-path router query
 DEBUG:  Creating router plan
 DEBUG:  Plan is router executable
-DEBUG:  generating subplan XXX_2 for subquery SELECT users_ref_test_table.id FROM public.users_ref_test_table UNION SELECT intermediate_result.user_id FROM read_intermediate_result('XXX_1'::text, 'binary'::citus_copy_format) intermediate_result(user_id integer)
-DEBUG:  Plan XXX query after replacing subqueries and CTEs: SELECT id FROM (SELECT intermediate_result.id FROM read_intermediate_result('XXX_2'::text, 'binary'::citus_copy_format) intermediate_result(id integer)) sub ORDER BY id DESC
+DEBUG:  generating subplan XXX_1 for subquery SELECT id FROM public.users_ref_test_table
+DEBUG:  Router planner cannot handle multi-shard select queries
+DEBUG:  generating subplan XXX_2 for subquery SELECT user_id FROM public.user_buy_test_table
+DEBUG:  Creating router plan
+DEBUG:  Plan is router executable
+DEBUG:  generating subplan XXX_3 for subquery SELECT intermediate_result.id FROM read_intermediate_result('XXX_1'::text, 'binary'::citus_copy_format) intermediate_result(id integer) UNION SELECT intermediate_result.user_id FROM read_intermediate_result('XXX_2'::text, 'binary'::citus_copy_format) intermediate_result(user_id integer)
+DEBUG:  Plan XXX query after replacing subqueries and CTEs: SELECT id FROM (SELECT intermediate_result.id FROM read_intermediate_result('XXX_3'::text, 'binary'::citus_copy_format) intermediate_result(id integer)) sub ORDER BY id DESC
 DEBUG:  Creating router plan
 DEBUG:  Plan is router executable
  id
@@ -408,12 +412,15 @@ SELECT * FROM
 	 SELECT user_id, random() * 0 FROM (SELECT user_id FROM user_buy_test_table) sub2) sub
 ORDER BY 1 DESC;
 DEBUG:  Router planner cannot handle multi-shard select queries
-DEBUG:  Router planner cannot handle multi-shard select queries
-DEBUG:  generating subplan XXX_1 for subquery SELECT user_id, (random() OPERATOR(pg_catalog.*) (0)::double precision) FROM (SELECT user_buy_test_table.user_id FROM public.user_buy_test_table) sub2
 DEBUG:  Creating router plan
 DEBUG:  Plan is router executable
-DEBUG:  generating subplan XXX_2 for subquery SELECT sub1.id, (random() OPERATOR(pg_catalog.*) (0)::double precision) FROM (SELECT users_ref_test_table.id FROM public.users_ref_test_table) sub1 UNION SELECT intermediate_result.user_id, intermediate_result."?column?" FROM read_intermediate_result('XXX_1'::text, 'binary'::citus_copy_format) intermediate_result(user_id integer, "?column?" double precision)
-DEBUG:  Plan XXX query after replacing subqueries and CTEs: SELECT id, "?column?" FROM (SELECT intermediate_result.id, intermediate_result."?column?" FROM read_intermediate_result('XXX_2'::text, 'binary'::citus_copy_format) intermediate_result(id integer, "?column?" double precision)) sub ORDER BY id DESC
+DEBUG:  generating subplan XXX_1 for subquery SELECT id, (random() OPERATOR(pg_catalog.*) (0)::double precision) FROM (SELECT users_ref_test_table.id FROM public.users_ref_test_table) sub1
+DEBUG:  Router planner cannot handle multi-shard select queries
+DEBUG:  generating subplan XXX_2 for subquery SELECT user_id, (random() OPERATOR(pg_catalog.*) (0)::double precision) FROM (SELECT user_buy_test_table.user_id FROM public.user_buy_test_table) sub2
+DEBUG:  Creating router plan
+DEBUG:  Plan is router executable
+DEBUG:  generating subplan XXX_3 for subquery SELECT intermediate_result.id, intermediate_result."?column?" FROM read_intermediate_result('XXX_1'::text, 'binary'::citus_copy_format) intermediate_result(id integer, "?column?" double precision) UNION SELECT intermediate_result.user_id, intermediate_result."?column?" FROM read_intermediate_result('XXX_2'::text, 'binary'::citus_copy_format) intermediate_result(user_id integer, "?column?" double precision)
+DEBUG:  Plan XXX query after replacing subqueries and CTEs: SELECT id, "?column?" FROM (SELECT intermediate_result.id, intermediate_result."?column?" FROM read_intermediate_result('XXX_3'::text, 'binary'::citus_copy_format) intermediate_result(id integer, "?column?" double precision)) sub ORDER BY id DESC
 DEBUG:  Creating router plan
 DEBUG:  Plan is router executable
  id | ?column?

@@ -141,7 +141,7 @@ AnchorRte(Query *subquery)
 		 * the set operations.
 		 */
 		if (anchorRangeTblEntry == NULL && currentRte->rtekind == RTE_SUBQUERY &&
-			QueryContainsDistributedTableRTE(currentRte->subquery) &&
+			QueryContainsDistributedNonReferenceTableRTE(currentRte->subquery) &&
 			currentRte->subquery->setOperations == NULL &&
 			!ContainsUnionSubquery(currentRte->subquery))
 		{
@@ -195,7 +195,7 @@ SubqueryColocated(Query *subquery, ColocatedJoinChecker *checker)
 	 */
 	if (list_length(filteredRestrictionList) == 0)
 	{
-		Assert(!QueryContainsDistributedTableRTE(subquery));
+		Assert(!QueryContainsDistributedNonReferenceTableRTE(subquery));
 
 		return true;
 	}

@@ -161,8 +161,11 @@ DEBUG:  Router planner cannot handle multi-shard select queries
 DEBUG:  generating subplan XXX_2 for subquery SELECT x FROM (SELECT test.x FROM recursive_set_local.test) cte_1
 DEBUG:  Creating router plan
 DEBUG:  Plan is router executable
-DEBUG:  generating subplan XXX_3 for subquery (SELECT intermediate_result.x FROM read_intermediate_result('XXX_2'::text, 'binary'::citus_copy_format) intermediate_result(x integer) UNION SELECT cte_1.a FROM (SELECT ref.a FROM recursive_set_local.ref) cte_1) INTERSECT SELECT intermediate_result.x FROM read_intermediate_result('XXX_1'::text, 'binary'::citus_copy_format) intermediate_result(x integer)
-DEBUG:  Plan XXX query after replacing subqueries and CTEs: SELECT count(*) AS count FROM (SELECT intermediate_result.x FROM read_intermediate_result('XXX_3'::text, 'binary'::citus_copy_format) intermediate_result(x integer)) foo, recursive_set_local.test WHERE (test.y OPERATOR(pg_catalog.=) foo.x)
+DEBUG:  generating subplan XXX_3 for subquery SELECT a FROM (SELECT ref.a FROM recursive_set_local.ref) cte_1
+DEBUG:  Creating router plan
+DEBUG:  Plan is router executable
+DEBUG:  generating subplan XXX_4 for subquery (SELECT intermediate_result.x FROM read_intermediate_result('XXX_2'::text, 'binary'::citus_copy_format) intermediate_result(x integer) UNION SELECT intermediate_result.a FROM read_intermediate_result('XXX_3'::text, 'binary'::citus_copy_format) intermediate_result(a integer)) INTERSECT SELECT intermediate_result.x FROM read_intermediate_result('XXX_1'::text, 'binary'::citus_copy_format) intermediate_result(x integer)
+DEBUG:  Plan XXX query after replacing subqueries and CTEs: SELECT count(*) AS count FROM (SELECT intermediate_result.x FROM read_intermediate_result('XXX_4'::text, 'binary'::citus_copy_format) intermediate_result(x integer)) foo, recursive_set_local.test WHERE (test.y OPERATOR(pg_catalog.=) foo.x)
 DEBUG:  Router planner cannot handle multi-shard select queries
  count
 ---------------------------------------------------------------------
@@ -189,8 +192,11 @@ DEBUG:  Router planner cannot handle multi-shard select queries
 DEBUG:  generating subplan XXX_2 for subquery SELECT x FROM (SELECT test.x FROM recursive_set_local.test) cte_1
 DEBUG:  Creating router plan
 DEBUG:  Plan is router executable
-DEBUG:  generating subplan XXX_3 for subquery (SELECT intermediate_result.x FROM read_intermediate_result('XXX_2'::text, 'binary'::citus_copy_format) intermediate_result(x integer) UNION SELECT cte_1.a FROM (SELECT ref.a FROM recursive_set_local.ref) cte_1) INTERSECT SELECT intermediate_result.x FROM read_intermediate_result('XXX_1'::text, 'binary'::citus_copy_format) intermediate_result(x integer)
-DEBUG:  Plan XXX query after replacing subqueries and CTEs: SELECT count(*) AS count FROM (SELECT intermediate_result.x FROM read_intermediate_result('XXX_3'::text, 'binary'::citus_copy_format) intermediate_result(x integer)) foo, recursive_set_local.ref WHERE (ref.a OPERATOR(pg_catalog.=) foo.x)
+DEBUG:  generating subplan XXX_3 for subquery SELECT a FROM (SELECT ref.a FROM recursive_set_local.ref) cte_1
+DEBUG:  Creating router plan
+DEBUG:  Plan is router executable
+DEBUG:  generating subplan XXX_4 for subquery (SELECT intermediate_result.x FROM read_intermediate_result('XXX_2'::text, 'binary'::citus_copy_format) intermediate_result(x integer) UNION SELECT intermediate_result.a FROM read_intermediate_result('XXX_3'::text, 'binary'::citus_copy_format) intermediate_result(a integer)) INTERSECT SELECT intermediate_result.x FROM read_intermediate_result('XXX_1'::text, 'binary'::citus_copy_format) intermediate_result(x integer)
+DEBUG:  Plan XXX query after replacing subqueries and CTEs: SELECT count(*) AS count FROM (SELECT intermediate_result.x FROM read_intermediate_result('XXX_4'::text, 'binary'::citus_copy_format) intermediate_result(x integer)) foo, recursive_set_local.ref WHERE (ref.a OPERATOR(pg_catalog.=) foo.x)
 DEBUG:  Creating router plan
 DEBUG:  Plan is router executable
  count
