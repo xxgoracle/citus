@@ -326,7 +326,7 @@ RecursivelyPlanSubqueriesAndCTEs(Query *query, RecursivePlanningContext *context
 			if (ContainsReferencesToOuterQuery(castNode(Query, havingSublink->subselect)))
 			{
 				return DeferredError(ERRCODE_FEATURE_NOT_SUPPORTED,
-									 "Cannot recursively plan HAVING with references to outer query",
+									 "Subqueries in HAVING cannot refer to outer query",
 									 NULL, NULL);
 			}
 		}

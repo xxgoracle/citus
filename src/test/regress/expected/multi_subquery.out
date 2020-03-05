@@ -893,7 +893,7 @@ FROM subquery_pruning_varchar_test_table
 JOIN cte_1 ON a = max::text
 GROUP BY a HAVING a = (SELECT a)
 ORDER BY 1;
-ERROR:  Cannot recursively plan HAVING with references to outer query
+ERROR:  Subqueries in HAVING cannot refer to outer query
 -- Test https://github.com/citusdata/citus/issues/3432
 SELECT t1.event_type FROM events_table t1
 GROUP BY t1.event_type HAVING t1.event_type > avg((SELECT t2.value_2 FROM users_table t2 ORDER BY 1 DESC LIMIT 1))
