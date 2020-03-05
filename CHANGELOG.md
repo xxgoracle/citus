@@ -1,3 +1,7 @@
+### citus v9.2.2 (March 5, 2020) ###
+
+* Improves performance of re-partition joins
+
 ### citus v9.2.1 (February 14, 2020) ###
 
 * Fixes a bug that could cause crashes if distribution key is NULL
