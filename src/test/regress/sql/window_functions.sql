@@ -420,6 +420,17 @@ GROUP BY
 ORDER BY
 	3 DESC, 2 DESC, 1 DESC;
 
+SELECT
+	value_2, user_id,
+	AVG(avg(value_1)) OVER (PARTITION BY value_2, max(value_2), MIN(value_2)),
+	AVG(avg(value_2)) OVER (PARTITION BY user_id, min(value_2), AVG(value_1))
+FROM
+	users_table
+GROUP BY
+	1, 2
+ORDER BY
+	3 DESC, 2 DESC, 1 DESC;
+
 SELECT user_id, sum(avg(user_id)) OVER ()
 FROM users_table
 GROUP BY user_id
