@@ -62,6 +62,7 @@
 #include "storage/lock.h"
 #include "storage/lmgr.h"
 #include "tcop/tcopprot.h"
+#include "tcop/deparse_utility.h"
 #include "utils/array.h"
 #include "utils/builtins.h"
 #include "utils/elog.h"
@@ -90,6 +91,7 @@ static char * CreateDropShardPlacementCommand(const char *schemaName,
 PG_FUNCTION_INFO_V1(master_apply_delete_command);
 PG_FUNCTION_INFO_V1(master_drop_all_shards);
 PG_FUNCTION_INFO_V1(master_drop_sequences);
+PG_FUNCTION_INFO_V1(drop_statement_cascades);
 
 
 /*
@@ -523,6 +525,34 @@ CreateDropShardPlacementCommand(const char *schemaName, const char *shardRelatio
 	}
 
 	return workerDropQuery->data;
+}
+
+
+/*
+ * drop_statement_cascades returns true if the given statement is a DropStmt
+ * with CASCADE behaviour. It errors out if the given statement is not a DropStmt.
+ */
+Datum
+drop_statement_cascades(PG_FUNCTION_ARGS)
+{
+	CollectedCommand *cmd = (CollectedCommand *) PG_GETARG_POINTER(0);
+
+	Assert(cmd != NULL && cmd->parsetree != NULL);
+
+	Node *parseTree = cmd->parsetree;
+
+	if (!IsA(parseTree, DropStmt))
+	{
+		ereport(ERROR, (errmsg("given statement is not a DROP statement")));
+	}
+
+	DropStmt *dropStmt = castNode(DropStmt, parseTree);
+
+	bool dropStatementCascades = (dropStmt->behavior == DROP_CASCADE);
+
+	ereport(NOTICE, (errmsg("statement CASCADES %u", dropStatementCascades)));
+
+	PG_RETURN_BOOL(dropStatementCascades);
 }
 
 

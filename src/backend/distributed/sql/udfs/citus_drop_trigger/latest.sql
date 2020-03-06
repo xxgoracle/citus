@@ -4,11 +4,17 @@ CREATE OR REPLACE FUNCTION pg_catalog.citus_drop_trigger()
     SET search_path = pg_catalog
     AS $cdbdt$
 DECLARE
+    r record;
     v_obj record;
     sequence_names text[] := '{}';
     table_colocation_id integer;
     propagate_drop boolean := false;
-BEGIN
+BEGIN    
+	FOR r IN SELECT * FROM pg_event_trigger_ddl_commands()
+	LOOP
+		PERFORM drop_statement_cascades(r.command);
+    END LOOP;
+
     -- collect set of dropped sequences to drop on workers later
     SELECT array_agg(object_identity) INTO sequence_names
     FROM pg_event_trigger_dropped_objects()
