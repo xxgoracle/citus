@@ -21,6 +21,7 @@
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
 #include "distributed/version_compat.h"
+#include "nodes/nodeFuncs.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/datum.h"
@@ -346,6 +347,37 @@ worker_partial_agg_sfunc(PG_FUNCTION_ARGS)
 	{
 		box = pallocInAggContext(fcinfo, sizeof(StypeBox));
 		box->agg = PG_GETARG_OID(1);
+
+		Form_pg_proc procform;
+		HeapTuple proctuple = GetProcForm(box->agg, &procform);
+		bool typeChecked = false;
+		Aggref *aggref = AggGetAggref(fcinfo);
+		if (aggref != NULL)
+		{
+			Assert(list_length(aggref->args) == 2);
+			TargetEntry *aggarg = list_nth(aggref->args, 1);
+
+			bool argtypesNull;
+			Datum argtypes = SysCacheGetAttr(PROCOID, proctuple,
+											 Anum_pg_proc_proargtypes,
+											 &argtypesNull);
+			Assert(!argtypesNull);
+			int arrayIndex = 1;
+			Datum argtype = array_get_element(argtypes,
+											  1, &arrayIndex, -1, sizeof(Oid), true, 4,
+											  &argtypesNull);
+			Assert(!argtypesNull);
+
+			typeChecked = aggarg != NULL &&
+						  exprType((Node *) aggarg->expr) == DatumGetObjectId(argtype);
+		}
+		ReleaseSysCache(proctuple);
+
+		if (!typeChecked)
+		{
+			ereport(ERROR, (errmsg(
+								"worker_partial_agg_sfunc could not confirm type correctness")));
+		}
 	}
 	else
 	{
@@ -456,7 +488,7 @@ worker_partial_agg_ffunc(PG_FUNCTION_ARGS)
 
 	InitFunctionCallInfoData(*innerFcinfo, &info, 1, fcinfo->fncollation,
 							 fcinfo->context, fcinfo->resultinfo);
-	fcSetArgExt(innerFcinfo, 0, box->value, box->valueNull);
+	fcSetArg(innerFcinfo, 0, box->value);
 
 	Datum result = FunctionCallInvoke(innerFcinfo);
 
@@ -612,6 +644,23 @@ coord_combine_agg_ffunc(PG_FUNCTION_ARGS)
 		}
 	}
 
+	bool typeChecked = false;
+	Aggref *aggref = AggGetAggref(fcinfo);
+	if (aggref != NULL)
+	{
+		Assert(list_length(aggref->args) == 3);
+		TargetEntry *nulltag = list_nth(aggref->args, 2);
+
+		typeChecked = nulltag != NULL && IsA(nulltag->expr, Const) &&
+					  ((Const *) nulltag->expr)->consttype == box->transtype;
+	}
+
+	if (!typeChecked)
+	{
+		ereport(ERROR, (errmsg(
+							"coord_combine_agg_ffunc could not confirm type correctness")));
+	}
+
 	HeapTuple aggtuple = GetAggregateForm(box->agg, &aggform);
 	Oid ffunc = aggform->aggfinalfn;
 	bool fextra = aggform->aggfinalextra;
@@ -623,6 +672,7 @@ coord_combine_agg_ffunc(PG_FUNCTION_ARGS)
 		{
 			PG_RETURN_NULL();
 		}
+
 		PG_RETURN_DATUM(box->value);
 	}
 

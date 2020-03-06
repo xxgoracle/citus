@@ -204,5 +204,10 @@ RESET citus.task_executor_type;
 select key, count(distinct aggdata)
 from aggdata group by key order by 1, 2;
 
+-- Test https://github.com/citusdata/citus/issues/3328
+create table nulltable(id int);
+insert into nulltable values (0);
+select pg_catalog.worker_partial_agg('string_agg(text,text)'::regprocedure, id) from nulltable;
+
 set client_min_messages to error;
 drop schema aggregate_support cascade;
